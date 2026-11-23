@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>نظر و انتقاد | برکه دوستی</title>
+<meta name="theme-color" content="#17b05f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2317b05f'/%3E%3Ccircle cx='32' cy='38' r='12' fill='%23fff'/%3E%3Ccircle cx='68' cy='38' r='12' fill='%23fff'/%3E%3Ccircle cx='33' cy='39' r='5' fill='%2325103f'/%3E%3Ccircle cx='67' cy='39' r='5' fill='%2325103f'/%3E%3Cpath d='M26 62q24 20 48 0' stroke='%2325103f' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#17b05f;--ink:#25103f;--tomato:#e8467c;--sun:#ffe04a;--paper:#fff;--line:#d8cdee;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root{--green:#0f8a4a;--ink:#150a26;--paper:#f7f3ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:#fff;font-family:"Vazirmatn",Tahoma,sans-serif;font-size:17px;line-height:1.9}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+header{background:linear-gradient(180deg,#7fd3ff,#d6f6ff 55%,var(--green));text-align:center;padding:34px 20px 70px}
+header h1{font-family:"Lalezar",Tahoma,sans-serif;font-weight:400;margin:0;font-size:clamp(42px,11vw,72px);text-shadow:3px 3px 0 var(--tomato)}
+header h1{color:#fff}header a{color:var(--ink);font-weight:700}
+main{max-width:560px;margin:-44px auto 0;padding:0 16px 50px}
+.card{background:var(--paper);color:var(--ink);border-radius:22px;padding:22px}
+label{display:block;font-weight:700;font-size:15px;margin:14px 0 6px}
+label:first-child{margin-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:3px solid var(--line);background:transparent;color:inherit;font:inherit;font-size:15px;padding:3px 16px;border-radius:999px;cursor:pointer}
+.chip[aria-checked="true"]{background:var(--tomato);border-color:var(--tomato);color:#fff;font-weight:700}
+.stars{display:flex;gap:2px;direction:ltr;justify-content:flex-end}
+.st{border:0;background:none;font-size:36px;line-height:1;color:#cfc3e6;cursor:pointer;padding:0 2px}
+.st.on{color:#ffb400}
+textarea,input{width:100%;font:inherit;padding:11px 14px;border:3px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
+textarea{min-height:130px;resize:vertical}
+.btn{display:block;width:100%;border:0;cursor:pointer;font:inherit;font-weight:700;font-size:19px;background:var(--green);color:#fff;padding:13px;border-radius:999px;margin-top:18px}
+.err{color:var(--tomato);font-weight:700;min-height:1.5em;margin:8px 0 0}
+#done{display:none;text-align:center}
+#done textarea{min-height:110px;font-size:14px;margin-top:8px}
+.hp{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<header><h1>نظر و انتقاد شما</h1><a href="index.html">← بازگشت به سایت</a></header>
+<main>
+<form class="card" id="f" novalidate>
+<label>پیام شما</label>
+<div class="chips" id="type" role="radiogroup" aria-label="نوع پیام"></div>
+<label>امتیاز شما (اختیاری)</label>
+<div class="stars" id="stars" role="radiogroup" aria-label="امتیاز"></div>
+<label for="text">بنویسید</label>
+<textarea id="text" maxlength="1000" placeholder="نظر یا انتقادتان را اینجا بنویسید…"></textarea>
+<label for="name">نام (اختیاری، می‌توانید خالی بگذارید)</label>
+<input id="name" autocomplete="name">
+<input class="hp" id="site" tabindex="-1" autocomplete="off" aria-hidden="true">
+<p class="err" id="err" role="alert"></p>
+<button class="btn" type="submit">ارسال</button>
+</form>
+<section class="card" id="done">
+<h2 style="margin:0">ممنون از شما 💚</h2>
+<p>برای اینکه نظرتان به ما برسد، دکمه‌ی زیر را بزنید و پیام را در تلگرام بفرستید.</p>
+<textarea id="msg" readonly></textarea>
+<button class="btn" style="background:#2aa9e0" id="tg" type="button">ارسال در تلگرام</button>
+</section>
+</main>
+<script>
+const TELEGRAM='@SAMSAYERII';
+const $=id=>document.getElementById(id);
+const fa=v=>String(v).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+let type='نظر',stars=0;
+function draw(){
+  $('type').innerHTML='';
+  ['نظر','انتقاد','پیشنهاد'].forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.setAttribute('role','radio');b.setAttribute('aria-checked',type===t);b.onclick=()=>{type=t;draw()};$('type').append(b)});
+  $('stars').innerHTML='';
+  for(let i=1;i<=5;i++){const b=document.createElement('button');b.type='button';b.className='st'+(stars>=i?' on':'');b.textContent='★';b.setAttribute('aria-label',fa(i)+' ستاره');b.onclick=()=>{stars=stars===i?0:i;draw()};$('stars').append(b)}
+}
+draw();
+$('f').onsubmit=e=>{
+  e.preventDefault();
+  if($('site').value)return;
+  const t=$('text').value.trim();
+  if(t.length<3)return $('err').textContent='لطفاً چند کلمه بنویسید.';
+  const L=['پیام از برکه دوستی','نوع: '+type];
+  if(stars)L.push('امتیاز: '+fa(stars)+' از ۵');
+  L.push('','متن: '+t,'','نام: '+($('name').value.trim()||'ناشناس'));
+  $('msg').value=L.join('\n');
+  $('f').style.display='none';$('done').style.display='block';
+};
+$('tg').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('msg').value)}catch(e){$('msg').select();try{document.execCommand('copy')}catch(x){}}
+  alert('متن کپی شد. در تلگرام بچسبانید و بفرستید.');
+  window.open('https://t.me/'+TELEGRAM.replace('@',''),'_blank');
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%2317b05f'/%3E%3Ccircle cx='32' cy='38' r='12' fill='%23fff'/%3E%3Ccircle cx='68' cy='38' r='12' fill='%23fff'/%3E%3Ccircle cx='33' cy='39' r='5' fill='%2325103f'/%3E%3Ccircle cx='67' cy='39' r='5' fill='%2325103f'/%3E%3Cpath d='M26 62q24 20 48 0' stroke='%2325103f' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>بررسی بلیط | ورودی</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Vazirmatn,Tahoma,sans-serif;background:#25103f;color:#fff;padding:16px;line-height:1.8}
+.w{max-width:520px;margin:0 auto}
+h1{margin:0 0 12px;font-size:22px;color:#ffe04a}
+.box{background:rgba(255,255,255,.08);border-radius:16px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:14px;margin-bottom:4px}
+select,input,button{font:inherit;width:100%;padding:12px;border-radius:12px;border:0;margin-bottom:8px}
+select,input{background:#fff;color:#25103f}
+button{background:#ffe04a;color:#25103f;font-weight:700;cursor:pointer}
+button.r{background:#ff4a3a;color:#fff}button.g{background:#17b05f;color:#fff}button.s{background:#8a7aa6;color:#fff}
+video{width:100%;border-radius:12px;display:none;margin-bottom:8px;background:#000}
+#res{display:none;border-radius:16px;padding:16px;font-size:18px}
+#res.ok{background:#17b05f}#res.warn{background:#e08a00}#res.bad{background:#c4201a}
+#res b{font-size:24px;display:block}
+.mut{color:#cdbfe8;font-size:14px}
+textarea{width:100%;height:90px;border-radius:12px;border:0;padding:10px;font:inherit;font-size:13px}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>بررسی بلیط در ورودی</h1>
+
+<div class="box">
+  <label for="sess">سانس فعلی (برای هشدار اشتباه بودن سانس)</label>
+  <select id="sess"><option value="0">همه‌ی سانس‌ها</option><option value="1">۸:۳۰ صبح</option><option value="2">۱۰:۳۰ صبح</option><option value="3">۱۹:۰۰ عصر</option></select>
+  <button id="scan" type="button">اسکن QR با دوربین</button>
+  <video id="vid" playsinline muted></video>
+  <label for="code">یا متن زیر QR روی بلیط را وارد کنید</label>
+  <input id="code" dir="ltr" placeholder="VP-12345-ABCDE-2-3" autocomplete="off">
+  <button id="check" type="button">بررسی</button>
+</div>
+
+<div id="res" role="status"></div>
+<button id="enter" class="g" type="button" style="display:none">ثبت ورود (استفاده شد)</button>
+
+<div class="box">
+  <b>ثبت بلیط‌های پرداخت‌شده</b>
+  <p class="mut">هر بلیطی که رسیدش را دیدید، کد ۵ رقمی یا کل متن زیر QR را اینجا بنویسید (چند تا را با فاصله یا خط جدید). فقط بلیط‌های ثبت‌شده در ورودی قبول می‌شوند.</p>
+  <textarea id="regin" dir="ltr" placeholder="36411 82045 VP-55120-ABCDE-1-2"></textarea>
+  <button id="regBtn" class="g" type="button">ثبت</button>
+  <label style="display:flex;gap:8px;align-items:center"><input id="strict" type="checkbox" style="width:auto;margin:0"> فقط بلیط‌های ثبت‌شده را قبول کن</label>
+</div>
+
+<div class="box">
+  <b>باطل کردن بلیط</b>
+  <p class="mut">اگر رسیدی جعلی بود، کد ۵ رقمی بلیط را اینجا بنویسید تا در ورودی رد شود.</p>
+  <input id="blk" dir="ltr" inputmode="numeric" placeholder="12345">
+  <button id="blkBtn" class="r" type="button">باطل کن</button>
+</div>
+
+<div class="box">
+  <b id="stat"></b>
+  <p class="mut">این اطلاعات فقط روی همین گوشی و همین مرورگر ذخیره می‌شود. اگر چند نفر در ورودی هستند، همه باید از یک گوشی استفاده کنند.</p>
+  <button id="exp" class="s" type="button">نمایش گزارش (برای کپی)</button>
+  <textarea id="rep" style="display:none" readonly></textarea>
+  <button id="clr" class="r" type="button">پاک کردن همه‌ی ثبت‌ها</button>
+</div>
+</div>
+
+<script>
+const TICKET_SECRET = 'bcf4cab47e4d7739'; // باید دقیقاً با مقدار داخل index.html یکی باشد
+const SESS = {1:'۸:۳۰ صبح', 2:'۱۰:۳۰ صبح', 3:'۱۹:۰۰ عصر'};
+const $ = id => document.getElementById(id);
+const cyrb53 = (str, seed = 0) => { let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed; for (let i = 0, ch; i < str.length; i++) { ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0); };
+const sigOf = (code, sid, qty) => cyrb53(code + '|' + sid + '|' + qty + '|' + TICKET_SECRET).toString(36).toUpperCase().padStart(5, '0').slice(-5);
+const fa = v => String(v).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const toEn = s => String(s).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+
+function load(k, def){ try { return JSON.parse(localStorage.getItem(k)) || def; } catch(e){ return def; } }
+function save(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ alert('ذخیره‌سازی مرورگر کار نمی‌کند؛ حالت ناشناس را خاموش کنید.'); } }
+let used = load('vp_used', {}), blocked = load('vp_block', []), reg = load('vp_reg', []), strict = load('vp_strict', true), cur = null;
+
+function show(cls, html){ const r = $('res'); r.className = cls; r.style.display = 'block'; r.innerHTML = html; }
+function stats(){
+  const v = Object.values(used);
+  $('stat').textContent = 'بلیط ثبت‌شده: ' + fa(reg.length) + ' | وارد شده: ' + fa(v.length) + ' بلیط، ' + fa(v.reduce((a, x) => a + x.qty, 0)) + ' نفر | کدهای باطل‌شده: ' + fa(blocked.length);
+}
+function check(raw){
+  cur = null; $('enter').style.display = 'none';
+  const t = toEn(raw).trim().toUpperCase();
+  const m = /^VP-(\d{5})-([0-9A-Z]{5})-(\d)-(\d{1,2})$/.exec(t);
+  if (!m) return show('bad', '<b>نامعتبر</b>متن بلیط درست نیست. دوباره اسکن کنید.');
+  const [, code, sig, sid, qty] = m;
+  if (sigOf(code, sid, qty) !== sig) return show('bad', '<b>جعلی یا دستکاری‌شده</b>این بلیط توسط سایت ساخته نشده است.');
+  if (blocked.includes(code)) return show('bad', '<b>باطل شده</b>کد ' + fa(code) + ' باطل شده است. ورود ندهید.');
+  if (strict && !reg.includes(code)) return show('bad', '<b>ثبت نشده</b>کد ' + fa(code) + ' جزو بلیط‌های ثبت‌شده نیست (رسیدش تأیید نشده).');
+  const info = 'کد ' + fa(code) + ' | سانس ' + SESS[sid] + ' | ' + fa(qty) + ' نفر';
+  if (used[t]) return show('warn', '<b>قبلاً استفاده شده</b>' + info + '<br>ورود قبلی: ' + new Date(used[t].at).toLocaleString('fa-IR'));
+  const want = $('sess').value;
+  if (want !== '0' && want !== sid) return show('warn', '<b>سانس دیگر</b>' + info + '<br>این بلیط برای سانس فعلی نیست.');
+  cur = {key: t, qty: +qty, sid: +sid, code};
+  show('ok', '<b>معتبر</b>' + info);
+  $('enter').style.display = 'block';
+}
+$('check').onclick = () => check($('code').value);
+$('code').onkeydown = e => { if (e.key === 'Enter') check($('code').value); };
+$('enter').onclick = () => {
+  if (!cur) return;
+  used[cur.key] = {at: Date.now(), qty: cur.qty, sid: cur.sid, code: cur.code}; save('vp_used', used);
+  $('enter').style.display = 'none'; show('ok', '<b>ورود ثبت شد</b>کد ' + fa(cur.code) + ' | ' + fa(cur.qty) + ' نفر'); cur = null; stats();
+};
+function extractCodes(text){
+  const t = toEn(text).toUpperCase(), out = [];
+  const rest = t.replace(/VP-(\d{5})-[0-9A-Z]{5}-\d-\d{1,2}/g, (m, c) => { out.push(c); return ' '; });
+  (rest.match(/(?<!\d)\d{5}(?!\d)/g) || []).forEach(c => out.push(c));
+  return out;
+}
+$('regBtn').onclick = () => {
+  const codes = extractCodes($('regin').value);
+  if (!codes.length) return alert('کد ۵ رقمی پیدا نشد.');
+  let added = 0; codes.forEach(c => { if (!reg.includes(c)) { reg.push(c); added++; } });
+  save('vp_reg', reg); $('regin').value = ''; stats(); alert(fa(added) + ' بلیط جدید ثبت شد.');
+};
+$('strict').checked = strict;
+$('strict').onchange = e => { strict = e.target.checked; save('vp_strict', strict); };
+$('blkBtn').onclick = () => {
+  const c = toEn($('blk').value).trim();
+  if (!/^\d{5}$/.test(c)) return alert('کد باید ۵ رقم باشد.');
+  if (!blocked.includes(c)) { blocked.push(c); save('vp_block', blocked); }
+  $('blk').value = ''; stats(); alert('کد ' + fa(c) + ' باطل شد.');
+};
+$('exp').onclick = () => {
+  const lines = Object.values(used).sort((a, b) => a.at - b.at).map(x => x.code + ' | ' + SESS[x.sid] + ' | ' + x.qty + ' نفر | ' + new Date(x.at).toLocaleString('fa-IR'));
+  $('rep').value = lines.join('\n') + (blocked.length ? '\nباطل‌شده: ' + blocked.join(', ') : '') + '\nثبت‌شده: ' + reg.join(' '); $('rep').style.display = 'block';
+};
+$('clr').onclick = () => { if (confirm('همه‌ی بلیط‌های ثبت‌شده، ورودها و کدهای باطل‌شده پاک شود؟')) { used = {}; blocked = []; reg = []; save('vp_used', used); save('vp_block', blocked); save('vp_reg', reg); stats(); $('res').style.display = 'none'; } };
+
+let stream = null, timer = null;
+function stopScan(){ if (timer) clearInterval(timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = timer = null; $('vid').style.display = 'none'; }
+$('scan').onclick = async () => {
+  if (stream) return stopScan();
+  if (!('BarcodeDetector' in window) || !navigator.mediaDevices) return alert('این مرورگر اسکن را پشتیبانی نمی‌کند. متن زیر QR را دستی وارد کنید (یا با Chrome اندروید و https باز کنید).');
+  try {
+    const det = new BarcodeDetector({formats: ['qr_code']});
+    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
+    const v = $('vid'); v.srcObject = stream; v.style.display = 'block'; await v.play();
+    timer = setInterval(async () => {
+      try { const r = await det.detect(v); if (r.length) { const val = r[0].rawValue; stopScan(); $('code').value = val; check(val); } } catch(e){}
+    }, 300);
+  } catch(e){ stopScan(); alert('دسترسی به دوربین ممکن نشد. اجازه‌ی دوربین را بدهید.'); }
+};
+stats();
+</script>
+</body>
+</html>
